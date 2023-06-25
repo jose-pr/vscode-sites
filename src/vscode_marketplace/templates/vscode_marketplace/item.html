@@ -1,0 +1,58 @@
+<div class="card">
+    <div class="row g-0">
+        <div class="col-md-4">
+            <img src="{% if extension.latest_version.icon %} {{ extension.latest_version.icon }} {%else%} /static/default_icon.png{% endif %}"
+                 class="img-fluid rounded-start">
+        </div>
+        <div class="col-md-8">
+            <div class="card-body">
+                <h5 class="card-title">{{ extension.display_name }}</h5>
+                <p class="card-text">
+                    {{ extension.description }}
+                </p>
+                <p class="card-text">
+                    <a class="btn btn-success"
+                       href="vscode:extension/{{ extension.uid }}">Install</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+<ul class="nav nav-tabs" id="myTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link"
+                id="versions-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#versions"
+                type="button"
+                role="tab"
+                aria-controls="home"
+                aria-selected="true">
+            Versions
+        </button>
+    </li>
+</ul>
+<div class="tab-content" id="myTabContent">
+    <div class="tab-pane fade" id="versions" role="tabpanel">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Version</th>
+                    <th scope="col">Last Updated</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for version in extension.versions.all %}
+                    <tr>
+                        <td>{{ version.version }}</td>
+                        <td>{{ version.last_updated }}</td>
+                        <td>
+                            <a href="/assets/{{extension.publisher.name}}/{{extension.name}}/{{version.version}}/VSIX">Download</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

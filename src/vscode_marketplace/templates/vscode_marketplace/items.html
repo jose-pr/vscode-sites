@@ -1,0 +1,43 @@
+{%include "vscode_marketplace/header.html"%}
+<nav class="navbar navbar-expand-lg bg-body-tertiary" data-bs-theme='dark'>
+    <div class="container-fluid">
+    <a class="navbar-brand" href="#">VSCode Local Marketplace</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <form class="d-flex" role="search" action="/items" method="get">
+        <input class="form-control me-2" type="search" placeholder="Search" name='searchText', aria-label="Search">
+        <button class="btn btn-outline-success" type="submit">
+            <i class="fas fa-search"></i>
+        </button>
+        </form>
+    </div>
+    </div>
+</nav>
+<main>
+    <section>
+        <div class='container'>
+            <div class='row'>
+            {% for ext in extensions %}
+                <div class="card mb-3" style="max-width: 18rem;" onclick="location.href='/items?itemName={{ ext.uid }}';">
+                    <div class="row g-0">
+                        <div class="col-md-4">
+                            <img src="{% if ext.latest_version.icon %} {{ ext.latest_version.icon }} {%else%} /static/default_icon.png{% endif %}" class="img-fluid rounded-start">
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ ext.display_name }}</h5>
+                                <p class="card-text">{{ ext.description }}</p>
+                                <p class="card-text"><a class="btn btn-success"
+                                        href="vscode:extension/{{ uid }}">Install</a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+    </section>
+</main>

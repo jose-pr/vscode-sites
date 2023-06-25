@@ -1,0 +1,61 @@
+
+	
+	# https://github.com/microsoft/vscode/blob/main/src/vs/platform/externalServices/common/marketplace.ts
+    VSCODE Headers:
+		X-Market-Client-Id= `VSCode ${version}`,
+		User-Agent= `VSCode ${version} (${productService.nameShort})`
+        X-Market-User-Id = serviceMachineId
+        VSCode-SessionId = telemetryService.machineId || serviceMachineId
+
+
+
+
+interface IRawGalleryExtensionFile {
+	readonly assetType: string;
+	readonly source: string;
+}
+
+interface IRawGalleryExtensionProperty {
+	readonly key: string;
+	readonly value: string;
+}
+
+export interface IRawGalleryExtensionVersion {
+	readonly version: string;
+	readonly lastUpdated: string;
+	readonly assetUri: string;
+	readonly fallbackAssetUri: string;
+	readonly files: IRawGalleryExtensionFile[];
+	readonly properties?: IRawGalleryExtensionProperty[];
+	readonly targetPlatform?: string;
+}
+
+interface IRawGalleryExtensionStatistics {
+	readonly statisticName: string;
+	readonly value: number;
+}
+
+interface IRawGalleryExtensionPublisher {
+	readonly displayName: string;
+	readonly publisherId: string;
+	readonly publisherName: string;
+	readonly domain?: string | null;
+	readonly isDomainVerified?: boolean;
+}
+
+interface IRawGalleryExtension {
+	readonly extensionId: string;
+	readonly extensionName: string;
+	readonly displayName: string;
+	readonly shortDescription: string;
+	readonly publisher: IRawGalleryExtensionPublisher;
+	readonly versions: IRawGalleryExtensionVersion[];
+	readonly statistics: IRawGalleryExtensionStatistics[];
+	readonly tags: string[] | undefined;
+	readonly releaseDate: string;
+	readonly publishedDate: string;
+	readonly lastUpdated: string;
+	readonly categories: string[] | undefined;
+	readonly flags: string;
+}
+
