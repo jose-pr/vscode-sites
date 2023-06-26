@@ -5,7 +5,7 @@ from . import views
 
 
 router = routers.DefaultRouter()
-router.register(r"extension", views.GalleryExtensionViewSet)
+router.register(r"extension", views.GalleryExtensionViewSet2)
 
 urlpatterns = [
     path("public/gallery/extensionquery", views.extensionquery, name=""),

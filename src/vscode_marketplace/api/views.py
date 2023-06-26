@@ -83,14 +83,81 @@ def extensionquery(request: HttpRequest):
     return resp
 
 
-
-from rest_framework import viewsets
+from rest_framework import viewsets, response, generics, views
 from . import serializers
+from . import typing
 
 
 class GalleryExtensionViewSet(viewsets.ReadOnlyModelViewSet):
     """
     A simple ViewSet for viewing accounts.
     """
-    queryset = models.GalleryExtension.objects.get_queryset().all()
+
+    queryset = models.GalleryExtension.objects.get_queryset()
+
     serializer_class = serializers.ExtensionSerializer
+
+    def get_queryset(self):
+        if self.request.method.lower() == "post":
+            query: typing.GalleryExtensionQuery = self.request.POST
+        else:
+            req = self.request.GET
+            args = {}
+            if page := req.get("page", None):
+                args["page"] = page
+            if page_size := req.get("pageSize", None):
+                args["page_size"] = page_size
+            for arg in ["page", "pageSize", "sortBy", "sortOrder", "flags"]:
+                value = req.get(arg, None)
+                if arg == "flags" and value is not None:
+                    args[arg] = GalleryFlags(arg)
+                elif value:
+                    args[arg] = value
+
+            query = simple_query(req.get("searchText", ""), **args)
+        filter = query["filters"][0]
+        qs = models.GalleryExtension.query(
+            filter["criteria"],
+            filter.get("sortBy", SortBy.NoneOrRelevance),
+            filter.get("sortOrder", SortOrder.Default),
+        )
+        return qs.page(filter.get("pageNumber", 1), filter.get("pageSize", 10))
+
+
+class GalleryExtensionViewSet2(viewsets.ReadOnlyModelViewSet):
+    queryset = models.GalleryExtension.objects.get_queryset()
+    serializer_class = serializers.ExtensionSerializer
+
+    def list(self, request, *args, **kwargs):
+        result: GalleryQueryResult = {"results": []}
+        if request.method.lower() == "post":
+            query: typing.GalleryExtensionQuery = request.POST
+        else:
+            req = request.GET
+            args = {}
+            if page := req.get("page", None):
+                args["page"] = page
+            if page_size := req.get("pageSize", None):
+                args["page_size"] = page_size
+            for arg in ["page", "pageSize", "sortBy", "sortOrder", "flags"]:
+                value = req.get(arg, None)
+                if arg == "flags" and value is not None:
+                    args[arg] = GalleryFlags(arg)
+                elif value:
+                    args[arg] = value
+
+            query = simple_query(req.get("searchText", ""), **args)
+
+        for filter in query["filters"]:
+            qs = models.GalleryExtension.query(
+                filter["criteria"],
+                filter.get("sortBy", SortBy.NoneOrRelevance),
+                filter.get("sortOrder", SortOrder.Default),
+            )
+            serializer = serializers.ExtensionSerializer(
+                qs.page(filter.get("pageNumber", 1), filter.get("pageSize", 10)),
+                many=True,
+            )
+            result["results"].append(serializer.data)
+
+        return response.Response(result)

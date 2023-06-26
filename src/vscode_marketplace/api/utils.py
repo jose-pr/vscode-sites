@@ -68,7 +68,11 @@ def criteria_query(criteria: "list[GalleryCriterium]"):
     for f in criteria:
         type = FilterType(f["filterType"])
         if type is FilterType.SearchText:
-            filters = GalleryCriterium.from_searchtext(f["value"])
+            if f["value"] == '':
+                ors.append(Q())
+                continue
+            else:
+                filters = GalleryCriterium.from_searchtext(f["value"])
         else:
             filters = [f]
         for f in filters:
@@ -85,16 +89,16 @@ def criteria_query(criteria: "list[GalleryCriterium]"):
                 ors.append(q)
     query: Q = None
     for q in ors:
-        if not query:
+        if query is None:
             query = q
         else:
             query |= q
     for q in ands:
-        if not query:
+        if query is None:
             query = q
         else:
             query &= q
-    if not query:
+    if query is None:
         query = Q(pk__in=[])
     return query
 
@@ -124,7 +128,7 @@ def simple_query(
                     {"filterType": FilterType.SearchText, "value": search},
                     {
                         "filterType": FilterType.ExcludeWithFlags,
-                        "value": str(GalleryFlags.Unpublished),
+                        "value": str(GalleryFlags.Unpublished.numerator),
                     },
                 ]
                 if isinstance(search, str)
