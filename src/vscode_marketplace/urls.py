@@ -14,13 +14,18 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.urls import path
+from django.urls import path, include, register_converter
 
+from .api import urls as api
+from .converters import SemVerConverter
 from . import views
+
+register_converter(SemVerConverter, 'semver')
+
 urlpatterns = [
     path("items", views.items, name='items'),
-    path('assets/extensions/<str:publisher>/<str:extension>/<str:version>/<str:asset>', views.assets_extensions),
-    path("_apis/public/gallery/extensionquery", views.extensionquery, name="")
+    path('assets/extensions/<str:publisher>/<str:extension>/<semver:version>/<str:asset>', views.assets_extensions),
+    path("_apis/", include(api))
 ]
 
 

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Type
+from typing import TYPE_CHECKING, Any, Generic, Type, TypeVar, cast
 import uuid
 from django.db import models
 from django.db.models import functions
@@ -11,8 +11,12 @@ from taggit.models import TagBase, ItemBase, GenericUUIDTaggedItemBase
 from generic_storage.models import GenericStorageFileField, GenericStorageFieldFile
 
 import semver
-
+from .typing.gallery import AssetType, SortBy, SortOrder, GalleryCriterium, FilterType
 from .typing import gallery as _gallery
+from .api import utils as api_utils
+
+if TYPE_CHECKING:
+    from _typeshed import Self
 
 
 __all__ = []
@@ -126,8 +130,37 @@ class GalleryExtensionPublisher(_Named):
 
 __all__.append(GalleryExtensionPublisher.__name__)
 
+M = TypeVar("M", bound=models.Model, covariant=True)
+
+
+class PageQuerySet(models.QuerySet[M]):
+    def page(self, page: int, page_size: int = 100) -> "PageQuerySet[M]":
+        start = ((page or 1) - 1) * page_size
+        end = start + page_size
+        return self[start:end]
+
+
+class _GalleryExtensionManager(
+    cast(models.Manager["GalleryExtension"], models.Manager).from_queryset(PageQuerySet)
+):
+    def get_queryset(self) -> PageQuerySet["GalleryExtension"]:
+        return (
+            super(_GalleryExtensionManager, self)
+            .get_queryset()
+            .annotate(
+                uid=functions.Concat(
+                    "publisher__name",
+                    models.Value("."),
+                    "name",
+                    output_field=models.CharField(),
+                )
+            )
+        )
+
 
 class GalleryExtension(_Named):
+    objects = _GalleryExtensionManager()
+    uid: str
     description = models.CharField(max_length=1000)
     publisher = models.ForeignKey(
         GalleryExtensionPublisher, related_name="extension", on_delete=models.CASCADE
@@ -141,29 +174,63 @@ class GalleryExtension(_Named):
     categories = TaggableManager(through=GalleryExtensionCategories)
     flags = models.CharField(max_length=255)
 
-  #  @property
-  #  def uid(self):
-  #      return f"{self.name}.{self.publisher.name}"
-
     @property
     def latest_version(self):
         return self.versions.order_by("-last_updated").first()
 
     @classmethod
-    def annotated(cls):
-        return cls.objects.annotate(
-            uid=functions.Concat(
-                "name",
-                models.Value("."),
-                "publisher__name",
-                output_field=models.CharField(),
+    def sort(
+        cls, sortOrder: _gallery.SortOrder, sortBy: _gallery.SortBy
+    ) -> PageQuerySet["GalleryExtension"]:
+        statistic_name = None
+        orderby = "_orderby"
+        qs = cls.objects.get_queryset().prefetch_related("publisher", "tags", "categories")
+        if sortBy is _gallery.SortBy.AverageRating:
+            statistic_name = "averagerating"
+        elif sortBy is _gallery.SortBy.InstallCount:
+            statistic_name = "install"
+        elif sortBy is _gallery.SortBy.WeightedRating:
+            statistic_name = "weightedRating"
+        elif sortBy is _gallery.SortBy.Title:
+            orderby = "display_name"
+        elif sortBy is _gallery.SortBy.PublisherName:
+            orderby = "publisher__display_name"
+        elif sortBy is _gallery.SortBy.PublishedDate:
+            orderby = "published"
+        elif sortBy is _gallery.SortBy.LastUpdatedDate:
+            qs = qs
+        else:
+            orderby = "name"
+
+        if _gallery.SortOrder.Descending is sortOrder:
+            orderby = f"-{orderby}"
+        if statistic_name:
+            qs = qs.annotate(
+                _orderby=models.Avg(
+                    "statistic__value", filter=models.Q(name=statistic_name)
+                )
             )
-        )
+        return qs.order_by(orderby)
+
+    @classmethod
+    def query(
+        cls,
+        criteria: "list[GalleryCriterium]" = None,
+        sortBy: SortBy = SortBy.NoneOrRelevance,
+        sortOrder: SortOrder = SortOrder.Default,
+    ):
+        sorted = cls.sort(sortOrder, sortBy)
+        if not criteria:
+            criteria = []
+        elif isinstance(criteria, str):
+            criteria = [{"filterType": FilterType.SearchText, "value": criteria}]
+        return sorted.filter(api_utils.criteria_query(criteria)) if criteria else sorted
 
     def __str__(self) -> str:
         return self.uid
 
     class Meta:
+        base_manager_name = 'objects'
         constraints = [
             models.UniqueConstraint(
                 fields=["name", "publisher"], name="gallery_extension_unique_name"
@@ -213,8 +280,7 @@ class GalleryExtensionVersion(models.Model):
     def icon(self):
         icon = self.assets.filter(type=_gallery.AssetType.Icon).first()
         if icon:
-            return icon.source
-
+            return f'/assets/extensions/{self.extension.publisher.name}/{self.extension.name}/{self.version}/{AssetType.Icon}'
 
 __all__.append(GalleryExtensionVersion.__name__)
 

@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+from corsheaders import defaults as corsdefaults
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,10 +27,10 @@ SECRET_KEY = "django-insecure-1c0t*e0+y*!h$0%(83yxucm0cl%g_3q&^h&uvqi7@g%mm_=9_!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['marketplace.visualstudio.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ["marketplace.visualstudio.com", "localhost", "127.0.0.1"]
 
-CSRF_TRUSTED_ORIGINS  = ['vscode-file://vscode-app']
-CSRF_COOKIE_SECURE=False
+CSRF_TRUSTED_ORIGINS = ["vscode-file://vscode-app","https://marketplace.visualstudio.com"]
+CSRF_COOKIE_SECURE = False
 # Application definition
 
 INSTALLED_APPS = [
@@ -39,12 +41,14 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "generic_storage",
-    "vscode_marketplace"
+    "vscode_marketplace",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -127,28 +131,28 @@ STATIC_ROOT = BASE_DIR.parent / "dev/static"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-FIXTURE_DIRS = [ BASE_DIR.parent / "dev/fixtures" ]
+FIXTURE_DIRS = [BASE_DIR.parent / "dev/fixtures"]
 
 LOGGING2 = {
-    'version': 1,
-    'filters': {
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
+    "version": 1,
+    "filters": {
+        "require_debug_true": {
+            "()": "django.utils.log.RequireDebugTrue",
         }
     },
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'filters': ['require_debug_true'],
-            'class': 'logging.StreamHandler',
+    "handlers": {
+        "console": {
+            "level": "DEBUG",
+            "filters": ["require_debug_true"],
+            "class": "logging.StreamHandler",
         }
     },
-    'loggers': {
-        'django.db.backends': {
-            'level': 'DEBUG',
-            'handlers': ['console'],
+    "loggers": {
+        "django.db.backends": {
+            "level": "DEBUG",
+            "handlers": ["console"],
         }
-    }
+    },
 }
 
 STORAGES = {
@@ -158,4 +162,21 @@ STORAGES = {
     "vscode_marketplace": {
         "BACKEND": "vscode_marketplace.storage.HTTPStorage",
     },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
 }
+
+
+#
+# CORS SETTINGS
+#
+
+CORS_URLS_REGEX = r"^/_apis/.*$"
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_HEADERS = (
+    *corsdefaults.default_headers,
+    "x-market-user-id",
+    "x-market-client-id",
+    'vscode-sessionid'
+)

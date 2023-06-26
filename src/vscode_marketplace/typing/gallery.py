@@ -1,6 +1,8 @@
 from enum import Enum, IntEnum, IntFlag
+import re as _re
 from typing import Optional, TypedDict
 from typing_extensions import NotRequired
+
 
 # https://github.com/microsoft/vscode/blob/main/src/vs/platform/extensionManagement/common/extensionManagement.ts
 class SortBy(IntEnum):
@@ -99,6 +101,7 @@ class GalleryExtensionQueryResult(TypedDict):
 class GalleryQueryResult(TypedDict):
     results: "list[GalleryExtensionQueryResult]"
 
+
 class GalleryFlags(IntFlag):
     # None is used to retrieve only the basic extension details.
     NONE = 0x0
@@ -140,6 +143,9 @@ class GalleryFlags(IntFlag):
     IncludeNameConflictInfo = 0x8000
 
 
+_FILTER_TOKENS = {}
+
+
 class FilterType(IntEnum):
     Tag = 1
     ExtensionId = 4
@@ -149,6 +155,33 @@ class FilterType(IntEnum):
     Featured = 9
     SearchText = 10
     ExcludeWithFlags = 12
+
+    @property
+    def token(self)->_re.Pattern:
+        if self not in _FILTER_TOKENS:
+            if self is FilterType.SearchText:
+                prefix = ""
+            else:
+                prefix = f"{self.name.lower()}:"
+            _FILTER_TOKENS[self] = _re.compile(
+                r"\b" + prefix + r'("([^"]*)"|([^"]\S*))(\s+|\b|$)',
+                flags=_re.IGNORECASE,
+            )
+        return _FILTER_TOKENS[self]
+    
+    @classmethod
+    def from_searchtext(cls, text:str):
+        filters:list[tuple[FilterType, str]] = []
+        for ty in [FilterType.Category, FilterType.Tag]:
+            def collect(match: _re.Match):
+                filters.append((ty, match[1]))
+                return ""
+
+            text = ty.token.sub(collect, text)
+        for match in FilterType.SearchText.token.findall(text):
+            filters.append((FilterType.SearchText, match[0]))
+        return filters
+        
 
 
 class AssetType(str, Enum):
@@ -174,9 +207,23 @@ class GalleryCriterium(TypedDict):
     filterType: FilterType
     value: NotRequired[str]
 
+    @classmethod # type: ignore
+    def from_searchtext(cls, text:str):
+        filters:list[tuple[GalleryCriterium, str]] = []
+        for ty in [FilterType.Category, FilterType.Tag]:
+            def collect(match: _re.Match):
+                filters.append(cls(filterType=ty, value=match[1]))
+                return ""
+
+            text = ty.token.sub(collect, text)
+        for match in FilterType.SearchText.token.findall(text):
+            filters.append(cls(filterType=FilterType.SearchText, value=match[0]))
+        return filters
+
 
 VSCODE_INSTALLATION_TARGET = "Microsoft.VisualStudio.Code"
 DefaultPageSize = 10
+
 
 # From request
 class GalleryExtensionQueryFilter(TypedDict):
