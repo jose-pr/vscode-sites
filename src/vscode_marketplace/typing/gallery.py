@@ -22,16 +22,50 @@ class SortOrder(IntEnum):
     Descending = 2
 
 
+class AssetType(str, Enum):
+    Icon = "Microsoft.VisualStudio.Services.Icons.Default"
+    Details = "Microsoft.VisualStudio.Services.Content.Details"
+    Changelog = "Microsoft.VisualStudio.Services.Content.Changelog"
+    Manifest = "Microsoft.VisualStudio.Code.Manifest"
+    VSIX = "Microsoft.VisualStudio.Services.VSIXPackage"
+    License = "Microsoft.VisualStudio.Services.Content.License"
+    Repository = "Microsoft.VisualStudio.Services.Links.Source"
+
+    def mimetype(self):
+        match self:
+            case AssetType.Icon:
+                return "image/*"
+            case AssetType.Details:
+                return "text/markdown"
+            case AssetType.Changelog:
+                return "text/markdown"
+            case AssetType.Manifest:
+                return "application/json"
+            case AssetType.VSIX:
+                return "application/zip"
+            case _:
+                return None
+
+
+class PropertyType(str, Enum):
+    Dependency = "Microsoft.VisualStudio.Code.ExtensionDependencies"
+    ExtensionPack = "Microsoft.VisualStudio.Code.ExtensionPack"
+    Engine = "Microsoft.VisualStudio.Code.Engine"
+    PreRelease = "Microsoft.VisualStudio.Code.PreRelease"
+    LocalizedLanguages = "Microsoft.VisualStudio.Code.LocalizedLanguages"
+    WebExtension = "Microsoft.VisualStudio.Code.WebExtension"
+
+
 # https://github.com/microsoft/vscode/blob/main/src/vs/platform/extensionManagement/common/extensionGalleryService.ts
 
 
 class GalleryExtensionFile(TypedDict):
-    assetType: str
+    assetType: AssetType
     source: str
 
 
 class GalleryExtensionProperty(TypedDict):
-    key: str
+    key: PropertyType
     value: str
 
 
@@ -157,7 +191,7 @@ class FilterType(IntEnum):
     ExcludeWithFlags = 12
 
     @property
-    def token(self)->_re.Pattern:
+    def token(self) -> _re.Pattern:
         if self not in _FILTER_TOKENS:
             if self is FilterType.SearchText:
                 prefix = ""
@@ -168,11 +202,12 @@ class FilterType(IntEnum):
                 flags=_re.IGNORECASE,
             )
         return _FILTER_TOKENS[self]
-    
+
     @classmethod
-    def from_searchtext(cls, text:str):
-        filters:list[tuple[FilterType, str]] = []
+    def from_searchtext(cls, text: str):
+        filters: list[tuple[FilterType, str]] = []
         for ty in [FilterType.Category, FilterType.Tag]:
+
             def collect(match: _re.Match):
                 filters.append((ty, match[1]))
                 return ""
@@ -181,36 +216,17 @@ class FilterType(IntEnum):
         for match in FilterType.SearchText.token.findall(text):
             filters.append((FilterType.SearchText, match[0]))
         return filters
-        
-
-
-class AssetType(str, Enum):
-    Icon = "Microsoft.VisualStudio.Services.Icons.Default"
-    Details = "Microsoft.VisualStudio.Services.Content.Details"
-    Changelog = "Microsoft.VisualStudio.Services.Content.Changelog"
-    Manifest = "Microsoft.VisualStudio.Code.Manifest"
-    VSIX = "Microsoft.VisualStudio.Services.VSIXPackage"
-    License = "Microsoft.VisualStudio.Services.Content.License"
-    Repository = "Microsoft.VisualStudio.Services.Links.Source"
-
-
-class PropertyType(str, Enum):
-    Dependency = "Microsoft.VisualStudio.Code.ExtensionDependencies"
-    ExtensionPack = "Microsoft.VisualStudio.Code.ExtensionPack"
-    Engine = "Microsoft.VisualStudio.Code.Engine"
-    PreRelease = "Microsoft.VisualStudio.Code.PreRelease"
-    LocalizedLanguages = "Microsoft.VisualStudio.Code.LocalizedLanguages"
-    WebExtension = "Microsoft.VisualStudio.Code.WebExtension"
 
 
 class GalleryCriterium(TypedDict):
     filterType: FilterType
     value: NotRequired[str]
 
-    @classmethod # type: ignore
-    def from_searchtext(cls, text:str):
-        filters:list[tuple[GalleryCriterium, str]] = []
+    @classmethod  # type: ignore
+    def from_searchtext(cls, text: str):
+        filters: list[tuple[GalleryCriterium, str]] = []
         for ty in [FilterType.Category, FilterType.Tag]:
+
             def collect(match: _re.Match):
                 filters.append(cls(filterType=ty, value=match[1]))
                 return ""
@@ -236,6 +252,6 @@ class GalleryExtensionQueryFilter(TypedDict):
 
 
 class GalleryExtensionQuery(TypedDict):
-    assetTypes: "list[str]"
+    assetTypes: "list[AssetType]"
     filters: "list[GalleryExtensionQueryFilter]"
     flags: GalleryFlags

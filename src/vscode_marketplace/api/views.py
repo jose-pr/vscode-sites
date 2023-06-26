@@ -83,3 +83,14 @@ def extensionquery(request: HttpRequest):
     return resp
 
 
+
+from rest_framework import viewsets
+from . import serializers
+
+
+class GalleryExtensionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    A simple ViewSet for viewing accounts.
+    """
+    queryset = models.GalleryExtension.objects.get_queryset().all()
+    serializer_class = serializers.ExtensionSerializer

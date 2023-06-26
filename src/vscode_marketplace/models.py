@@ -177,6 +177,14 @@ class GalleryExtension(_Named):
     @property
     def latest_version(self):
         return self.versions.order_by("-last_updated").first()
+    
+    @property
+    def last_updated(self):
+        version = self.versions.order_by("-last_updated").first()
+        if version:
+            return version.last_updated
+        else:
+            return None
 
     @classmethod
     def sort(
@@ -226,6 +234,7 @@ class GalleryExtension(_Named):
             criteria = [{"filterType": FilterType.SearchText, "value": criteria}]
         return sorted.filter(api_utils.criteria_query(criteria)) if criteria else sorted
 
+    
     def __str__(self) -> str:
         return self.uid
 

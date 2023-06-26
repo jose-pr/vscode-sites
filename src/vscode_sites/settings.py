@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "generic_storage",
     "vscode_marketplace",
     "corsheaders",
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
@@ -160,7 +161,7 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "vscode_marketplace": {
-        "BACKEND": "vscode_marketplace.storage.HTTPStorage",
+        "BACKEND": "vscode_marketplace.storage.WebProxyStorage",
     },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
@@ -180,3 +181,12 @@ CORS_ALLOW_HEADERS = (
     "x-market-client-id",
     'vscode-sessionid'
 )
+
+
+REST_FRAMEWORK = {
+    # Use Django's standard `django.contrib.auth` permissions,
+    # or allow read-only access for unauthenticated users.
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ]
+}

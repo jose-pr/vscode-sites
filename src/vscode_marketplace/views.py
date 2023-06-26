@@ -37,18 +37,6 @@ text/markdown                     md
     )
 )
 
-
-_ASSET: dict[AssetType, str] = {
-    AssetType.Manifest: "json",
-    AssetType.Changelog: "txt",
-    AssetType.Details: None,
-    AssetType.Icon: "png",
-    AssetType.License: None,
-    AssetType.Repository: None,
-    AssetType.VSIX: "vsix",
-}
-
-
 def assets_extensions(
     request, publisher: str, extension: str, version: semver, asset: str
 ):
@@ -62,12 +50,12 @@ def assets_extensions(
         extension_id=ext.values("id"), version=version
     )[:1]
 
-    suffix = _ASSET.get(asset)
+    suffix = None
     if suffix:
         filename = f"{filename}.{suffix}"
         default_mimetype = _MIMETYPE.guess_type(filename)[0]
     else:
-        default_mimetype = None
+        default_mimetype = AssetType.mimetype(asset)
 
     for _asset in models.GalleryExtensionFile.objects.filter(
         extension_version_id=vers.values("id"), type=asset
